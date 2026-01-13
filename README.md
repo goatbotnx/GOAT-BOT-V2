@@ -1,5 +1,12 @@
 <p align="center">
   <img src="https://files.catbox.moe/dvf1s1.jpg" width="150" height="150" style="border-radius: 50%; border: 3px solid #7000ff;" alt="Xalman Hossain">
+  <br>
+  <a href="https://www.facebook.com/nx210.2.0" target="_blank">
+    <img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white" />
+  </a>
+  <a href="https://wa.me/8801876118312" target="_blank">
+    <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" />
+  </a>
 </p>
 
 <h1 align="center">🐐 GOAT-BOT-V2</h1>
@@ -45,47 +52,26 @@
 ---
 
 ## 🛠️ Installation Guide
+1. **Clone the project:** `git clone https://github.com/goatbotnx/GOAT-BOT-V2.git`
+2. **Install dependencies:** `npm install`
+3. **Launch the bot:** `node index.js`
 
-### Prerequisites
-- Node.js (Latest LTS)
-- NPM or Yarn
+---
 
-### Steps
-1. **Clone the project:**
-   ```bash
-   git clone [https://github.com/goatbotnx/GOAT-BOT-V2.git](https://github.com/goatbotnx/GOAT-BOT-V2.git)
+## 🚀 Deployment Notice
+You can deploy **GOAT-BOT-V2** on the following platforms:
 
- * Install dependencies:
-   npm install
+* **🐙 GitHub Actions:** Use the Actions tab to automate your bot workflow.
+* **🌐 Render:** Connect repo, use `npm install` and `node index.js`.
+* **🌀 Replit:** Import repo and use 'Secrets' for credentials.
+* **🚂 Railway:** Best for easy Node.js hosting.
 
- * Launch the bot:
-   node index.js
-
-🚀 Deployment Notice
-You can deploy GOAT-BOT-V2 on the following platforms:
- * 🐙 GitHub Actions: Use the Actions tab to automate your bot workflow.
- * 🌐 Render: Connect repo, set build command to npm install and start command to node index.js.
- * 🌀 Replit: Import repo and use 'Secrets' to store your credentials.
- * 🚂 Railway: Best for easy Node.js hosting with automatic deployment.
 > [!WARNING]
-> Privacy Note: Never share your appstate.json or login credentials publicly on GitHub. Use Environment Variables for security.
-> 
-📞 Connect with Me
-<p align="left">
-<a href="https://www.facebook.com/nx210.2.0" target="_blank">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/Facebook-1877F2%3Fstyle%3Dfor-the-badge%26logo%3Dfacebook%26logoColor%3Dwhite" />
-</a>
-<a href="https://www.google.com/search?q=https://wa.me/8801876118312" target="_blank">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/WhatsApp-25D366%3Fstyle%3Dfor-the-badge%26logo%3Dwhatsapp%26logoColor%3Dwhite" />
-</a>
-</p>
- * Facebook Profile: Xalman Hossain
- * WhatsApp Chat: +880 1876-118312
+> **Privacy Note:** Never share your `appstate.json` publicly on GitHub. Use Environment Variables for security.
+
+---
 <p align="center">
-Copyright © 2026 <b>Xalman Hossain</b>. All rights reserved.
-
-
-<i>Give a ⭐ if this project helped you!</i>
+  Copyright © 2026 <b>Xalman Hossain</b>. All rights reserved.
+  <br>
+  <i>Give a ⭐ if this project helped you!</i>
 </p>
-
------
