@@ -1,51 +1,78 @@
 const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+const FormData = require('form-data');
+
+const API_CONFIG_URL = "https://raw.githubusercontent.com/goatbotnx/Sexy-nx2.0Updated/refs/heads/main/nx-apis.json";
 
 module.exports = {
   config: {
     name: "rbg",
     aliases: ["removebg"],
-    version: "2.6.0",
+    version: "1.1.0",
     author: "xalman",
     countDown: 5,
     role: 0,
-    description: "Remove background from any image",
+    shortDescription: "Remove Image Background",
+    longDescription: "{pn} reply any image to remove background",
     category: "tools",
-    guide: { en: "{p}rbg [reply to a photo]" }
+    guide: "{pn} reply to an image"
   },
 
-  onStart: async function ({ api, event, args, message }) {
+  onStart: async function ({ api, event, message }) {
+
+    if (
+      event.type !== "message_reply" ||
+      !event.messageReply.attachments ||
+      event.messageReply.attachments[0].type !== "photo"
+    ) {
+      return message.reply("⚠️ একটি ছবিতে reply দিয়ে `/rbg` লিখো");
+    }
+
+    api.setMessageReaction("⌛", event.messageID, () => {}, true);
+
+    const imageUrl = event.messageReply.attachments[0].url;
+    const cacheDir = path.join(__dirname, 'cache');
+    const cachePath = path.join(cacheDir, `rbg_${Date.now()}.png`);
+
     try {
-      let imageUrl;
-      if (event.type === "message_reply") {
-        if (event.messageReply.attachments[0]?.type === "photo") {
-          imageUrl = event.messageReply.attachments[0].url;
-        }
-      } else if (args[0]?.match(/(http(s?):)([/|.|\w|\s|-])*\.(?:jpg|gif|png|jpeg)/g)) {
-        imageUrl = args[0];
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+
+      const apiRes = await axios.get(API_CONFIG_URL, { timeout: 10000 });
+      const RBG_API = apiRes.data?.rbg;
+
+      if (!RBG_API) {
+        throw new Error("RBG API not found in nx-apis.json");
       }
 
-      if (!imageUrl) return message.reply("⚠️ | Please reply to an image to remove background.");
+      const img = await axios.get(imageUrl, { responseType: 'arraybuffer' });
 
-      api.setMessageReaction("⏳", event.messageID, (err) => {}, true);
+      const form = new FormData();
+      form.append('image', Buffer.from(img.data), 'image.png');
 
-      const configUrl = "https://raw.githubusercontent.com/goatbotnx/Sexy-nx2.0Updated/refs/heads/main/nx-apis.json";
-      const apiList = await axios.get(configUrl);
-      const baseUrl = apiList.data["rbg"]; 
-      
-      const rbgUrl = `${baseUrl}/rbg?url=${encodeURIComponent(imageUrl)}`;
-      
-      const response = await axios.get(rbgUrl, { responseType: 'stream' });
-
-      api.setMessageReaction("✅", event.messageID, (err) => {}, true);
-
-      return message.reply({
-        body: "✂️ 𝗕𝗮𝗰𝗸𝗴𝗿𝗼𝘂𝗻𝗱 𝗥𝗲𝗺𝗼𝘃𝗲𝗱 ✂️\n\n📁 Format: PNG (Transparent)\n👤 Author: xalman\n✅ Quality: Original",
-        attachment: response.data
+      const result = await axios.post(`${RBG_API}/process-bg`, form, {
+        headers: form.getHeaders(),
+        responseType: 'arraybuffer',
+        timeout: 120000
       });
 
-    } catch (error) {
-      api.setMessageReaction("❌", event.messageID, (err) => {}, true);
-      return message.reply("❌ | Failed to remove background. Server is busy.");
+      await fs.writeFile(cachePath, Buffer.from(result.data));
+
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+
+      await message.reply({
+        body: "✅ Background Removed Successfully!",
+        attachment: fs.createReadStream(cachePath)
+      });
+
+      setTimeout(() => {
+        if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+      }, 5000);
+
+    } catch (err) {
+      console.error("RBG ERROR:", err.message);
+      api.setMessageReaction("❌", event.messageID, () => {}, true);
+      message.reply("❌ Background remove করতে ব্যর্থ। API বা Server offline হতে পারে।");
     }
   }
 };
