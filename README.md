@@ -42,47 +42,7 @@
 2. **Install dependencies:** `npm install`
 3. **Launch the bot:** `node index.js`
 
-##CAN YOU RUN BOT IN GUITAR ACTION CREATE THIS FILE:
-.github/workflows/main.yml
 
-name: Build (20.x)
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 🧩 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🧰 Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-
-      - name: 📦 Install dependencies
-        run: |
-          npm install
-          npm install request-promise --save
-
-      - name: 🚀 Start bot
-        env:
-          FB_EMAIL: ${{ secrets.FB_EMAIL }}
-          FB_PASSWORD: ${{ secrets.FB_PASSWORD }}
-          FB_COOKIE: ${{ secrets.FB_COOKIE }}
-        run: |
-          echo "Starting bot..."
-          node index.js || echo "⚠️ Login error occurred, check cookie or Facebook verification."
-
-      - name: 🧹 Clean up (optional)
-        if: always()
-        run: |
-          echo "Job finished. Cleaning up..." 
 ---
 
 
