@@ -1,112 +1,81 @@
-const fs = require("fs-extra");
-const Canvas = require("canvas");
-const path = require("path");
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+const { createCanvas, loadImage } = require('canvas');
 
 module.exports = {
-  config: {
-    name: "propose",
-    aliases: ["prps"],
-    version: "3.5",
-    author: "xalman",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Propose with custom image",
-    longDescription: "Generate a propose image with avatars perfectly placed over characters’ heads (swapped).",
-    category: "fun",
-    guide: "{pn} @mention"
-  },
+    config: {
+        name: "propose",
+        version: "3.0",
+        author: "xalman",
+        countDown: 10,
+        role: 0,
+        description: "Propose someone with gender-based images",
+        category: "love",
+        guide: { en: "{p}{n} @mention | Reply | [uid]" }
+    },
 
-  onStart: async function ({ message, event, usersData }) {
-    const mention = Object.keys(event.mentions);
-    if (mention.length === 0)
-      return message.reply("❗ দয়া করে কাউকে mention করো।");
+    onStart: async function ({ api, event, args, usersData }) {
+        const { threadID, messageID, senderID, mentions, type, messageReply } = event;
+        
+        let mentionID = type === "message_reply" ? messageReply.senderID : 
+                         Object.keys(mentions).length > 0 ? Object.keys(mentions)[0] : args[0];
 
-    const senderID = event.senderID;
-    const mentionedID = mention[0];
+        if (!mentionID) return api.sendMessage("Please mention someone or reply to a message! 💍", threadID, messageID);
 
-    try {
-      // 🟢 Get avatar URLs
-      const avatarSender =
-        (await usersData.getAvatarUrl(senderID)) ||
-        `https://graph.facebook.com/${senderID}/picture?width=512&height=512`;
-      const avatarMentioned =
-        (await usersData.getAvatarUrl(mentionedID)) ||
-        `https://graph.facebook.com/${mentionedID}/picture?width=512&height=512`;
+        try {
+            const [senderInfo, mentionInfo] = await Promise.all([
+                usersData.get(senderID),
+                usersData.get(mentionID)
+            ]);
 
-      // 🖼️ Load all images
-      const [avatarImgSender, avatarImgMentioned, bg] = await Promise.all([
-        Canvas.loadImage(avatarSender),
-        Canvas.loadImage(avatarMentioned),
-        Canvas.loadImage("https://i.postimg.cc/vmZqx4rH/20251103-115147.png")
-      ]);
+            const { name: sName, gender: sGender } = senderInfo;
+            const { name: mName } = mentionInfo;
 
-      // 🎨 Canvas setup
-      const canvasWidth = 1280;
-      const canvasHeight = 1280;
-      const canvas = Canvas.createCanvas(canvasWidth, canvasHeight);
-      const ctx = canvas.getContext("2d");
+            let bgUrl, sP, mP;
+            if (sGender === 1) { 
+                bgUrl = "https://i.ibb.co/HpXZtX2t/fd52b9bc7357.jpg";
+                sP = { x: 335, y: 370, r: 30 }; mP = { x: 185, y: 310, r: 30 };
+            } else {
+                bgUrl = "https://i.ibb.co/5hRddLFs/053afb72e171.jpg";
+                sP = { x: 185, y: 310, r: 30 }; mP = { x: 335, y: 370, r: 30 };
+            }
 
-      // Draw background
-      ctx.drawImage(bg, 0, 0, canvasWidth, canvasHeight);
+            const getAvatar = (id) => `https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 
-      // 👥 Avatar settings
-      const avatarSize = Math.floor(canvasWidth * 0.11); // ছোট আকার
-      const girlHead = { x: 330, y: 130 }; // left character
-      const boyHead = { x: 760, y: 300 };  // right character
+            const [bgImg, avatarS, avatarM] = await Promise.all([
+                loadImage(bgUrl),
+                loadImage(getAvatar(senderID)),
+                loadImage(getAvatar(mentionID))
+            ]);
 
-      // 💙 Mentioned user avatar on girl's head (left side)
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(
-        girlHead.x + avatarSize / 2,
-        girlHead.y + avatarSize / 2,
-        avatarSize / 2,
-        0,
-        Math.PI * 2
-      );
-      ctx.clip();
-      ctx.drawImage(avatarImgMentioned, girlHead.x, girlHead.y, avatarSize, avatarSize);
-      ctx.restore();
+            const canvas = createCanvas(bgImg.width, bgImg.height);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-      // ❤️ Sender avatar on boy's head (right side)
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(
-        boyHead.x + avatarSize / 2,
-        boyHead.y + avatarSize / 2,
-        avatarSize / 2,
-        0,
-        Math.PI * 2
-      );
-      ctx.clip();
-      ctx.drawImage(avatarImgSender, boyHead.x, boyHead.y, avatarSize, avatarSize);
-      ctx.restore();
+            const drawCircle = (img, p) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(img, p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+                ctx.restore();
+            };
 
-      // 💾 Save image
-      const imgPath = path.join(
-        __dirname,
-        "tmp",
-        `${senderID}_${mentionedID}_propose.png`
-      );
-      await fs.ensureDir(path.dirname(imgPath));
-      await fs.writeFile(imgPath, canvas.toBuffer("image/png"));
+            drawCircle(avatarS, sP);
+            drawCircle(avatarM, mP);
 
-      // 💬 Send result
-      const text =
-        senderID === mentionedID
-          ? "নিজেকেই প্রপোজ করলে? 😂❤️"
-          : "💍 I law view bpy 🥺❤️";
+            const cachePath = path.join(__dirname, 'cache', `propose_${Date.now()}.png`);
+            if (!fs.existsSync(path.join(__dirname, 'cache'))) fs.mkdirSync(path.join(__dirname, 'cache'));
+            fs.writeFileSync(cachePath, canvas.toBuffer());
 
-      await message.reply(
-        {
-          body: text,
-          attachment: fs.createReadStream(imgPath)
-        },
-        () => fs.unlink(imgPath)
-      );
-    } catch (err) {
-      console.error("❌ Error in propose command:", err);
-      message.reply(`❌ Error creating image:\n${err.message}`);
+            return api.sendMessage({
+                body: `${sName} is proposing to ${mName}! ❤️💍`,
+                attachment: fs.createReadStream(cachePath)
+            }, threadID, () => fs.unlinkSync(cachePath), messageID);
+
+        } catch (e) {
+            return api.sendMessage("An error occurred. Please try again.", threadID, messageID);
+        }
     }
-  }
 };
