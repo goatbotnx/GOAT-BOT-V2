@@ -4,9 +4,8 @@ const moment = require("moment-timezone");
 const getStreamFromURL = global.utils.getStreamFromURL;
 
 const gifList = [
-	"https://i.postimg.cc/mgMWtjRD/xalman.webp",
-   "https://i.postimg.cc/pdr1yx3D/nx210.gif",
-	"https://i.postimg.cc/q7DXF3bq/nx210.gif"
+	"https://files.catbox.moe/gm0k08.gif",
+   "https://files.catbox.moe/gm0k08.gif"
 ];
 
 const getRandomGif = () =>
