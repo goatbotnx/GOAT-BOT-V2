@@ -41,6 +41,6 @@ module.exports.onStart = async function ({ api, event, args }) {
 
     } catch (e) {
         api.setMessageReaction("❌", messageID, () => {}, true);
-        return api.sendMessage("❌ এই ইমোজি দুটি মিক্স করা সম্ভব নয়।", threadID, messageID);
+        return api.sendMessage("❌ It is not possible to mix these two emojis.।", threadID, messageID);
     }
 };
