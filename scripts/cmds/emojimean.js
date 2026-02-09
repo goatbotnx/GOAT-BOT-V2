@@ -25,7 +25,7 @@ module.exports.onStart = async function ({ api, event, args }) {
         const { name, mean } = res.data.data;
 
         api.setMessageReaction("✅", messageID, () => {}, true);
-        return api.sendMessage(`📌 emoji: ${args[0]}\n✨ name: ${name}\n📖 Meaning: ${mean}\n\n`, threadID, messageID);
+        return api.sendMessage(`📌 emoji: ${args[0]}\n✨ name: ${name}\n📖 Meaning: ${mean}\n`, threadID, messageID);
     } catch (e) {
         api.setMessageReaction("❌", messageID, () => {}, true);
         return api.sendMessage(`❌ error `, threadID, messageID);
