@@ -4,6 +4,7 @@ const path = require("path");
 
 const ACCESS_TOKEN = "350685531728|62f8ce9f74b12f84c123cc23437a4a32";
 const access = "61583129938292";
+const COST = 1000;
 
 const backgrounds = [
   "https://i.ibb.co/fdCKDdh1/dd9c70eb5811.jpg"
@@ -12,17 +13,30 @@ const backgrounds = [
 module.exports = {
   config: {
     name: "squeeze",
-    version: "6.2",
+    version: "10.0",
     author: "xalman",
     role: 0,
     countDown: 10,
-    shortDescription: "squeeze image",
-    category: "fun"
+    shortDescription: "Squeeze image effect",
+    longDescription: "Create a squeeze image with tagged user. Cost: 1000 balance per use.",
+    category: "fun",
+    guide: {
+      en: "{pn} @mention\n{pn} reply\n{pn} uid"
+    }
   },
 
   onStart: async function ({ api, event, message, usersData }) {
 
     api.setMessageReaction("🕜", event.messageID, () => {}, true);
+
+    const senderID = event.senderID;
+
+    const userData = await usersData.get(senderID);
+    const balance = userData?.money || 0;
+
+    if (balance < COST) {
+      return message.reply(`❌ | You need ${COST} balance to use this command.`);
+    }
 
     let targetID = null;
 
@@ -39,11 +53,11 @@ module.exports = {
 
     if (!targetID) return;
 
-    if (targetID == access) {
-      return;
-    }
+    if (targetID == access) return;
 
-    const senderID = event.senderID;
+    await usersData.set(senderID, {
+      money: balance - COST
+    });
 
     try {
       const senderName = await usersData.getName(senderID).catch(() => "You");
@@ -98,7 +112,7 @@ module.exports = {
 
       message.reply(
         {
-          body: `${senderName} squeezed ${targetName} 🫦`,
+          body: `${senderName} squeezed ${targetName} 🫦💸 -${COST} balance deducted`,
           attachment: fs.createReadStream(imgPath)
         },
         () => {
