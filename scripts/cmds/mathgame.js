@@ -2,7 +2,7 @@ module.exports = {
   config: {
     name: "mathgame",
     aliases: ["math"],
-    version: "5.2",
+    version: "6.0",
     author: "xalman",
     role: 0,
     category: "game"
@@ -11,7 +11,7 @@ module.exports = {
   onStart: async function ({ event, args, message, usersData }) {
     const axios = require("axios");
     const uid = event.senderID;
-    
+
     if (!args[0]) {
       return message.reply(
 `🧮 MATH GAME GUIDE
@@ -20,6 +20,7 @@ module.exports = {
 ➤ /mathgame easy
 ➤ /mathgame medium
 ➤ /mathgame hard
+➤ /math easy
 
 🎮 Rules:
 • সঠিক উত্তর: +300 Coins, +100 XP
@@ -37,10 +38,7 @@ module.exports = {
 ✔ Use only:
 • easy
 • medium
-• hard
-
-Example:
-➤ /mathgame easy`
+• hard`
       );
     }
 
@@ -49,12 +47,14 @@ Example:
 
     const userData = await usersData.get(uid) || {};
     let mathHistory = userData.mathHistory || [];
+
     mathHistory = mathHistory.filter(t => now - t < ONE_HOUR);
 
     if (mathHistory.length >= 30) {
       const oldest = mathHistory[0];
       const remainingMs = (oldest + ONE_HOUR) - now;
       const remainingMin = Math.ceil(remainingMs / 60000);
+
       return message.reply(
 `⛔ Hourly Limit Reached
 ────────────
@@ -70,10 +70,12 @@ Example:
       const cfg = await axios.get(
         "https://raw.githubusercontent.com/goatbotnx/Sexy-nx2.0Updated/refs/heads/main/nx-apis.json"
       );
-      const baseUrl = cfg.data.math;
 
+      const baseUrl = cfg.data.math;
       const res = await axios.get(`${baseUrl}/api/game?level=${level}`);
+
       const { question, answer, options } = res.data;
+      const correctIndex = options.indexOf(answer) + 1;
 
       const optText = options.map((o, i) => ` ${i + 1}. ${o}`).join("\n");
 
@@ -95,24 +97,28 @@ ${optText}
           global.GoatBot.onReply.delete(info.messageID);
         }, 60 * 1000);
 
+        // ✅ FIXED (Alias + Main name both work)
         global.GoatBot.onReply.set(info.messageID, {
-          commandName: "math",
+          commandName: this.config.name,
           author: uid,
-          correctIndex: options.indexOf(answer) + 1,
+          correctIndex,
           answer,
           quizMsgID: info.messageID,
           timeout
         });
       });
 
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       message.reply("⚠️ Failed to load quiz.");
     }
   },
 
   onReply: async function ({ event, Reply, message, usersData }) {
+    if (!Reply) return;
+
     const { author, correctIndex, answer, quizMsgID, timeout } = Reply;
+
     if (event.senderID !== author) return;
 
     clearTimeout(timeout);
@@ -120,10 +126,16 @@ ${optText}
     const userReply = event.body.trim();
     const userData = await usersData.get(author) || {};
 
-    message.unsend(quizMsgID);
-    message.unsend(event.messageID);
+    try {
+      await message.unsend(quizMsgID);
+    } catch {}
+
+    try {
+      await message.unsend(event.messageID);
+    } catch {}
 
     if (userReply == correctIndex) {
+
       await usersData.set(author, {
         ...userData,
         money: (userData.money || 0) + 300,
@@ -133,9 +145,12 @@ ${optText}
       message.reply(
 `✅ Correct Answer!
 🎯 ${answer}
-💰 +300 Coins | ⭐ +100 XP`
+💰 +300 Coins
+⭐ +100 XP`
       );
+
     } else if (["1","2","3","4"].includes(userReply)) {
+
       await usersData.set(author, {
         ...userData,
         money: Math.max((userData.money || 0) - 100, 0)
