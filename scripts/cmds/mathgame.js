@@ -2,7 +2,7 @@ module.exports = {
   config: {
     name: "mathgame",
     aliases: ["math"],
-    version: "5.1",
+    version: "5.2",
     author: "xalman",
     role: 0,
     category: "game"
@@ -11,7 +11,39 @@ module.exports = {
   onStart: async function ({ event, args, message, usersData }) {
     const axios = require("axios");
     const uid = event.senderID;
-    const level = args[0] || "easy";
+
+    if (!args[0]) {
+      return message.reply(
+`🧮 MATH GAME GUIDE
+────────────
+📌 Usage:
+➤ /mathgame easy
+➤ /mathgame medium
+➤ /mathgame hard
+
+🎮 Rules:
+• সঠিক উত্তর: +300 Coins, +100 XP
+• ভুল উত্তর: -100 Coins
+
+⏱ সময়: 60 সেকেন্ড`
+      );
+    }
+
+    const level = args[0].toLowerCase();
+    if (!["easy", "medium", "hard"].includes(level)) {
+      return message.reply(
+`⚠️ Invalid Level!
+
+✔ Use only:
+• easy
+• medium
+• hard
+
+Example:
+➤ /mathgame easy`
+      );
+    }
+
     const now = Date.now();
     const ONE_HOUR = 60 * 60 * 1000;
 
@@ -27,16 +59,12 @@ module.exports = {
 `⛔ Hourly Limit Reached
 ────────────
 🎮 Played: 30 / 30
-⏳ You can play again in ${remainingMin} minute(s)`
+⏳ Try again in ${remainingMin} minute(s)`
       );
     }
 
     mathHistory.push(now);
-
-    await usersData.set(uid, {
-      ...userData,
-      mathHistory
-    });
+    await usersData.set(uid, { ...userData, mathHistory });
 
     try {
       const cfg = await axios.get(
@@ -50,13 +78,13 @@ module.exports = {
       const optText = options.map((o, i) => ` ${i + 1}. ${o}`).join("\n");
 
       const quizMsg =
-`🧮 MATH QUIZ
+`🧮 MATH QUIZ (${level.toUpperCase()})
 ────────────
 ❓ ${question} = ?
 
 ${optText}
 
-⏱ Time : 60 seconds
+⏱ Time: 60 seconds
 ✏️ Reply 1-4 only`;
 
       message.reply(quizMsg, (err, info) => {
