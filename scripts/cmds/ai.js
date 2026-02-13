@@ -6,7 +6,7 @@ module.exports = {
     aliases: ["nxai", "aichat"],
     version: "3.0",
     role: 0,
-    author: "Xalman",
+    author: "xalman",
     description: "any question ask ai",
     category: "ai",
     countDown: 3
