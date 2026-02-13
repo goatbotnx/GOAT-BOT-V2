@@ -1,50 +1,73 @@
 const axios = require("axios");
 
 module.exports = {
-	config: {
-		name: "nxai",
-		aliases: ["ai"],
-		version: "1.0",
-		author: "nx_",
-		countDown: 5,
-		role: 0,
-		shortDescription: "Chat with You AI",
-		longDescription: "Send a message and get a friendly AI response with related questions",
-		category: "ai",
-		guide: {
-			en: "{pn} <your message>"
-		}
-	},
+  config: {
+    name: "ai",
+    aliases: ["nxai", "aichat"],
+    version: "3.0",
+    role: 0,
+    author: "Xalman",
+    description: "any question ask ai",
+    category: "ai",
+    countDown: 3
+  },
 
-	langs: {
-		en: {
-			noInput: "⚠️ Please type something to ask.",
-			loading: "",
-			error: "❌ Failed to get response from You AI."
-		}
-	},
+  onStart: async function ({ api, event, args }) {
+    const { threadID, messageID } = event;
+    const query = args.join(" ").trim();
 
-	onStart: async function ({ message, args, getLang }) {
-		const input = args.join(" ");
-		if (!input) return message.reply(getLang("noInput"));
+    if (!query) return;
 
-		message.reply(getLang("loading"));
+    return await handleAIRequest(api, event, query, []);
+  },
 
-		try {
-			const apiUrl = `https://betadash-api-swordslush-production.up.railway.app/you?chat=${encodeURIComponent(input)}`;
-			const res = await axios.get(apiUrl);
+  onReply: async function ({ api, event, Reply }) {
+    const { body } = event;
 
-			const data = res.data;
-			if (!data || !data.response) return message.reply(getLang("error"));
+    if (!Reply || !Reply.lastAnswer) return;
 
-			const related = data.relatedSearch?.length
-				? "\n\n💡 Related:\n" + data.relatedSearch.map((r, i) => `• ${r}`).join("\n")
-				: "";
+    const history = Reply.history || [];
+    history.push({ role: "assistant", content: Reply.lastAnswer });
 
-			return message.reply(`🧠 ${data.response}${related}`);
-		} catch (err) {
-			console.error("YouAI Error:", err.message || err);
-			return message.reply(getLang("error"));
-		}
-	}
+    return await handleAIRequest(api, event, body.trim(), history);
+  }
 };
+
+async function handleAIRequest(api, event, query, history) {
+  const { threadID, messageID, senderID } = event;
+
+  try {
+    const apiConfig = await axios.get("https://raw.githubusercontent.com/goatbotnx/Sexy-nx2.0Updated/refs/heads/main/nx-apis.json");
+    const baseURL = apiConfig.data.chat;
+    const finalURL = baseURL.endsWith("/") ? `${baseURL}aichat` : `${baseURL}/aichat`;
+
+    const res = await axios.post(finalURL, {
+      query: query,
+      history: history
+    });
+
+    const answer = res.data?.result;
+
+    if (!answer) {
+      return api.sendMessage("No response from AI server.", threadID, messageID);
+    }
+
+    api.sendMessage(answer, threadID, (err, info) => {
+      if (err) return;
+
+      if (!global.client) global.client = {};
+      if (!global.client.handleReply) global.client.handleReply = [];
+
+      global.client.handleReply.push({
+        name: module.exports.config.name,
+        messageID: info.messageID,
+        author: senderID,
+        lastAnswer: answer,
+        history: [...history, { role: "user", content: query }]
+      });
+    }, messageID);
+
+  } catch (error) {
+    api.sendMessage("Server is not responding right now.", threadID, messageID);
+  }
+}
