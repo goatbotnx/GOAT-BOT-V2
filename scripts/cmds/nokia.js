@@ -1,71 +1,69 @@
-const { createCanvas, loadImage } = require("canvas");
+const { createCanvas, loadImage } = require('canvas');
 const fs = require("fs-extra");
 const path = require("path");
 
 module.exports = {
   config: {
     name: "nokia",
-    aliases: ["nok"],
-    version: "14.0",
+    version: "3.2",
     author: "xalman",
     countDown: 5,
     role: 0,
     category: "fun",
-    description: "Nokia style profile"
+    guide: { en: "{pn} @mention / reply / UID" }
   },
 
   onStart: async function ({ api, event, args }) {
     const { threadID, messageID, senderID, type, messageReply, mentions } = event;
+    const cacheDir = path.join(__dirname, 'cache');
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
-    const cacheDir = path.join(__dirname, "cache");
-    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    api.setMessageReaction("⏳", messageID, () => {}, true);
 
-    const bgUrl = "https://iili.io/qJehE8u.png";
-    let targetID = senderID;
+    const bgUrl = "https://iili.io/qJehE8u.png"; 
+    let targetID;
 
     if (type === "message_reply") {
       targetID = messageReply.senderID;
     } else if (Object.keys(mentions).length > 0) {
       targetID = Object.keys(mentions)[0];
-    } else if (args[0] && !isNaN(args[0])) {
+    } else if (args.length > 0) {
       targetID = args[0];
+    } else {
+      targetID = senderID;
     }
 
     try {
-      api.setMessageReaction("⏳", messageID, () => {}, true);
-
       const [background, avatar] = await Promise.all([
         loadImage(bgUrl),
-        loadImage(`https://graph.facebook.com/${targetID}/picture?width=1000&height=1000`)
+        loadImage(`https://graph.facebook.com/${targetID}/picture?width=1000&height=1000&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)
       ]);
 
       const canvas = createCanvas(background.width, background.height);
-      const ctx = canvas.getContext("2d");
-
+      const ctx = canvas.getContext('2d');
+      
       ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
-      const x = 80;
-      const y = 280;
-      const width = 320;
-      const height = 245;
+      const moveRight = 80;   
+      const moveDown = 280;    
+      const widthSize = 320;   
+      const heightSize = 245;  
 
-      ctx.drawImage(avatar, x, y, width, height);
+      ctx.drawImage(avatar, moveRight, moveDown, widthSize, heightSize);
 
-      const filePath = path.join(cacheDir, `nokia_${targetID}_${Date.now()}.png`);
-      fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
+      const cachePath = path.join(cacheDir, `nokia_${targetID}.png`);
+      fs.writeFileSync(cachePath, canvas.toBuffer());
 
-      await api.sendMessage(
-        { attachment: fs.createReadStream(filePath) },
-        threadID,
-        () => fs.unlinkSync(filePath),
-        messageID
-      );
+      return api.sendMessage({
+        attachment: fs.createReadStream(cachePath)
+      }, threadID, () => {
+        api.setMessageReaction("✅", messageID, () => {}, true);
+        fs.unlinkSync(cachePath);
+      }, messageID);
 
-      api.setMessageReaction("✅", messageID, () => {}, true);
-
-    } catch (err) {
+    } catch (e) {
       api.setMessageReaction("❌", messageID, () => {}, true);
-      api.sendMessage("Error generating image.", threadID, messageID);
+      return api.sendMessage("", threadID, messageID);
     }
   }
 };
