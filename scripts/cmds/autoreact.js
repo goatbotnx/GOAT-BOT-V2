@@ -4,8 +4,8 @@ const path = __dirname + "/cache/autoreact_status.json";
 module.exports = {
   config: {
     name: "autoreact",
-    version: "2.6.0",
-    author: "Gemini",
+    version: "2.0",
+    author: "xalman",
     countDown: 0,
     role: 0,
     shortDescription: "On/Off auto reaction",
