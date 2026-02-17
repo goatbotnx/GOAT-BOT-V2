@@ -5,7 +5,7 @@ module.exports = {
     version: "4.0",
     author: "xalman",
     countDown: 5,
-    role: 0,
+    role: 1,
     category: "utility",
     guide: "{pn} [text] OR reply with {pn} [lang_code]"
   },
