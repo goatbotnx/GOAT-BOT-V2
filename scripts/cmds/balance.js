@@ -1,5 +1,4 @@
-const { config } = global.GoatBot;
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
@@ -10,11 +9,11 @@ module.exports = {
     config: {
         name: "balance",
         aliases: ["bal", "money"],
-        version: "4.2.0",
+        version: "4.5.0",
         author: "xalman",
         countDown: 5,
         role: 0,
-        description: "View your premium neon balance card",
+        description: "View your premium neon balance card ",
         category: "economy",
         guide: { en: "{pn} | {pn} @tag" }
     },
@@ -24,10 +23,20 @@ module.exports = {
 
         const formatBalance = (num) => {
             const n = Number(num);
-            if (n === Infinity || isNaN(n) || n >= 1e15) return "∞ Unlimited";
-            if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
-            if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
-            if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+            if (n === Infinity || isNaN(n)) return "∞ Unlimited";
+            if (n < 1000) return n.toFixed(0);
+
+            const units = [
+                { v: 1e30, s: "No" }, { v: 1e27, s: "Oc" }, { v: 1e24, s: "Sp" },
+                { v: 1e21, s: "Sx" }, { v: 1e18, s: "Qi" }, { v: 1e15, s: "Q" },
+                { v: 1e12, s: "T" }, { v: 1e9, s: "B" }, { v: 1e6, s: "M" }, { v: 1e3, s: "K" }
+            ];
+
+            for (let i = 0; i < units.length; i++) {
+                if (n >= units[i].v) {
+                    return (n / units[i].v).toFixed(2).replace(/\.00$/, '') + units[i].s;
+                }
+            }
             return n.toLocaleString();
         };
 
@@ -47,7 +56,6 @@ module.exports = {
             gradient.addColorStop(0.5, '#302b63');
             gradient.addColorStop(1, '#24243e');
             ctx.fillStyle = gradient;
-            
             ctx.beginPath();
             ctx.roundRect(0, 0, 800, 450, 30);
             ctx.fill();
@@ -63,32 +71,25 @@ module.exports = {
 
             ctx.font = "bold 32px Arial";
             ctx.fillStyle = "#ffffff";
-            ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-            ctx.shadowBlur = 4;
             ctx.fillText("GOAT BANK LTD.", 50, 60);
-            ctx.shadowBlur = 0;
 
             try {
                 const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
                 const response = await axios.get(avatarURL, { responseType: 'arraybuffer' });
                 const avatarImg = await loadImage(Buffer.from(response.data));
-
                 ctx.save();
                 ctx.shadowColor = '#00d2ff';
                 ctx.shadowBlur = 20;
                 ctx.beginPath();
                 ctx.arc(100, 150, 60, 0, Math.PI * 2);
-                ctx.closePath();
                 ctx.clip();
                 ctx.drawImage(avatarImg, 40, 90, 120, 120);
                 ctx.restore();
-                
                 ctx.strokeStyle = "#00d2ff";
                 ctx.lineWidth = 3;
                 ctx.stroke();
-            } catch (e) { console.log("Avatar error"); }
+            } catch (e) {}
 
-            ctx.shadowBlur = 0;
             ctx.fillStyle = "#ffffff";
             ctx.font = "italic bold 40px sans-serif";
             ctx.fillText("VISA", 650, 60);
@@ -101,7 +102,12 @@ module.exports = {
             ctx.shadowColor = "#00d2ff";
             ctx.shadowBlur = 15;
             ctx.fillStyle = "#00d2ff";
-            ctx.font = displayBal.length > 10 ? "bold 60px Arial" : "bold 80px Arial";
+            
+            // Dynamic Font Sizing for Large Balances
+            if (displayBal.length > 12) ctx.font = "bold 45px Arial";
+            else if (displayBal.length > 8) ctx.font = "bold 60px Arial";
+            else ctx.font = "bold 80px Arial";
+            
             ctx.fillText(`$${displayBal}`, 60, 330);
 
             ctx.shadowBlur = 0;
@@ -129,9 +135,8 @@ module.exports = {
         const userData = await usersData.get(targetID);
         if (!userData) return message.reply("User not found!");
 
-        if (!args[0] || (args[0] && !["transfer"].includes(args[0]))) {
+        if (!args[0] || !["transfer"].includes(args[0])) {
             const cardImg = await createUniqueCard(userData.name || "Global User", userData.money || 0, targetID);
-            
             return message.reply({
                 body: `💳 GOAT BANK Premium Card: ${userData.name}\n💰 Balance: $${formatBalance(userData.money || 0)}`,
                 attachment: fs.createReadStream(cardImg)
@@ -140,17 +145,22 @@ module.exports = {
 
         if (args[0] === "transfer") {
             const targetUID = getTargetUID();
-            const amount = parseInt(args[args.length - 1]);
-            if (!targetUID || isNaN(amount) || amount <= 0) return message.reply("❌ Usage: balance transfer @tag 100");
+            const amountStr = args[args.length - 1];
+            let amount = parseInt(amountStr);
+            if (amountStr.toLowerCase().endsWith('k')) amount *= 1000;
+            if (amountStr.toLowerCase().endsWith('m')) amount *= 1000000;
+            if (amountStr.toLowerCase().endsWith('b')) amount *= 1000000000;
 
+            if (!targetUID || isNaN(amount) || amount <= 0) return message.reply("❌ Usage: balance transfer @tag [amount]");
             const senderData = await usersData.get(senderID);
             if (Number(senderData.money) < amount) return message.reply("❌ Insufficient balance!");
-
+            
             const receiverData = await usersData.get(targetUID);
             await usersData.set(senderID, { money: (Number(senderData.money) - amount).toString() });
             await usersData.set(targetUID, { money: (Number(receiverData.money || 0) + amount).toString() });
-
+            
             return message.reply(`✅ Transferred $${formatBalance(amount)} to ${receiverData.name}\nSystem Provider: ${nx_210}`);
         }
     }
 };
+                
