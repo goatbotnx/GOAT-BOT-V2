@@ -10,7 +10,7 @@ module.exports = {
 		author: "xalman",
 		countDown: 3,
 		role: 0,
-		description: "Cybernetic Rank Card with Large Number Formatting",
+		description: "user balance exp rank card",
 		category: "users",
 		envConfig: { deltaNext: 5 }
 	},
