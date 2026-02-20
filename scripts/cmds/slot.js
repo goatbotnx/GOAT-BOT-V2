@@ -55,9 +55,9 @@ module.exports = {
             global.slotLimit[senderID] = { count: 0, lastReset: now };
         }
 
-        if (global.slotLimit[senderID].count >= 30) {
+        if (global.slotLimit[senderID].count >= 200) {
             const timeLeft = Math.ceil((oneHour - (now - global.slotLimit[senderID].lastReset)) / (1000 * 60));
-            return message.reply(`🚫 Limit reached! You've played 30 times this hour. Try again in ${timeLeft} minutes.`);
+            return message.reply(`🚫 Limit reached! You've played 200 times this hour. Try again in ${timeLeft} minutes.`);
         }
 
         const items = ["🍎", "🍐", "🍑", "🍒", "🍓", "🍇", "🍉", "🍊", "🍋", "🍌", "🍍", "🥭"];
@@ -107,6 +107,6 @@ module.exports = {
         const status = win ? "WINNER! 🎉" : "LOST! 💀";
         const resultMsg = win ? `You won: ${bonus}৳` : `You lost: ${betAmount}৳`;
 
-        return api.editMessage(`🎰 | SLOT MACHINE\n──────────────\n       [ ${s1} | ${s2} | ${s3} ]\n──────────────\n📢 ${status}\n💰 ${resultMsg}\n💳 Balance: ${finalMoney}৳\n📊 Usage: ${global.slotLimit[senderID].count}/30 (this hour)`, msgID, threadID);
+        return api.editMessage(`🎰 | SLOT MACHINE\n──────────────\n       [ ${s1} | ${s2} | ${s3} ]\n──────────────\n📢 ${status}\n💰 ${resultMsg}\n💳 Balance: ${finalMoney}৳\n📊 Usage: ${global.slotLimit[senderID].count}/200 (this hour)`, msgID, threadID);
     }
 };
