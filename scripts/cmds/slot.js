@@ -33,7 +33,7 @@ module.exports = {
         }
 
         if (betAmount > maxBet) {
-            return message.reply("🚫 Maximum bet limit is 50M!");
+            return message.reply("🚫 Maximum bet limit is 500M!");
         }
 
         const userData = await usersData.get(senderID);
