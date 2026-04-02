@@ -5,8 +5,9 @@ const path = require("path");
 
 module.exports = {
   config: {
-    name: "google",
-    version: "4.0.0",
+    name: "googleimagesearch",
+    aliases: ["ggimg", "googleimg"],
+    version: "4.0",
     author: "xalman",
     countDown: 15,
     role: 0,
