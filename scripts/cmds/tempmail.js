@@ -4,7 +4,7 @@ module.exports = {
   config: {
     name: "tempmail",
     aliases: ["tm"],
-    version: "6.5.0",
+    version: "6.5",
     author: "xalman",
     countDown: 5,
     role: 0,
