@@ -39,7 +39,7 @@ module.exports = {
       api.setMessageReaction("✅", messageID, () => {}, true);
 
       return api.sendMessage({
-        body: "where is your picture",
+        body: "✨𝙝𝙚𝙧𝙚 𝙞𝙨 𝙮𝙤𝙪𝙧 𝙪𝙣𝙗𝙡𝙪𝙧 𝙞𝙢𝙖𝙜𝙚✨",
         attachment: response.data
       }, threadID, messageID);
 
