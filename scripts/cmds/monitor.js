@@ -1,87 +1,51 @@
 const axios = require("axios");
 
 module.exports = {
- config: {
- name: "monitor",
- version: "1.1.0",
- author: "Chitron Bhattacharjee",
- countDown: 5,
- role: 0,
- shortDescription: {
- en: "Create or rename uptime monitor"
- },
- description: {
- en: "Create UptimeRobot monitor or rename an existing one"
- },
- category: "system",
- guide: {
- en: "{p}monitor [name] [url]\n{p}monitor rename [id] [newName]"
- }
- },
+  config: {
+    name: "monitor",
+    aliases: ["addmonitor"],
+    version: "1.5",
+    author: "xalman",
+    countDown: 10,
+    role: 0,
+    shortDescription: { en: "Add a URL to the uptime monitoring system" },
+    category: "tools",
+    guide: { en: "{pn} <name> <url>" }
+  },
 
- onStart: async function ({ api, event, args }) {
- if (args.length < 1) {
- return api.sendMessage("❌ Usage:\n{p}monitor [name] [url]\n{p}monitor rename [id] [newName]", event.threadID, event.messageID);
- }
+  onStart: async function ({ message, args, event, api }) {
+    const name = args[0];
+    const url = args[1];
 
- const subCommand = args[0].toLowerCase();
+    if (!name || !url) {
+      return message.reply("⚠️ Usage: monitor <name> <url>");
+    }
 
- // === Rename monitor ===
- if (subCommand === "rename") {
- if (args.length < 3) {
- return api.sendMessage("❌ Usage:\n{p}monitor rename [id] [newName]", event.threadID, event.messageID);
- }
+    if (!url.startsWith("http")) {
+      return message.reply("❌ Invalid URL!");
+    }
 
- const id = args[1];
- const newName = args.slice(2).join(" ");
+    try {
+      api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
- try {
- const res = await axios.get("https://web-api-delta.vercel.app/upt/rename", {
- params: { id, name: newName }
- });
+      const res = await axios.get(`https://xalman-apis.vercel.app/api/monitor/add`, {
+        params: { name, url }
+      });
 
- const result = res.data;
+      if (res.data.status === true) {
+        api.setMessageReaction("✅", event.messageID, () => {}, true);
+        
+        let msg = `✅ 𝗠𝗼𝗻𝗶𝘁𝗼𝗿 𝗔𝗱𝗱𝗲𝗱!\n━━━━━━━━━━━━━━━━━━\n👤 Name: ${name}\n🔗 URL: ${url}\n📝 Status: Success`;
 
- if (result.error) {
- return api.sendMessage(`⚠️ Rename Failed: ${result.error}`, event.threadID, event.messageID);
- }
+        return message.reply(msg);
+      } else {
+        api.setMessageReaction("❌", event.messageID, () => {}, true);
+        return message.reply(`❌ Failed: ${res.data.message || "Rejected"}`);
+      }
 
- const updated = result.data;
- return api.sendMessage(`✅ Monitor Renamed!\n🆔 ID: ${updated.id}\n📛 New Name: ${updated.name}`, event.threadID, event.messageID);
- } catch (e) {
- return api.sendMessage(`🚫 API request failed!\n${e.message}`, event.threadID, event.messageID);
- }
- }
-
- // === Create monitor ===
- if (args.length < 2) {
- return api.sendMessage("❌ Usage:\n{p}monitor [name] [url]", event.threadID, event.messageID);
- }
-
- const name = args[0];
- const url = args[1];
- const interval = 300;
-
- if (!url.startsWith("http")) {
- return api.sendMessage("❌ Please provide a valid URL!", event.threadID, event.messageID);
- }
-
- try {
- const res = await axios.get("https://web-api-delta.vercel.app/upt", {
- params: { name, url, interval }
- });
-
- const result = res.data;
-
- if (result.error) {
- return api.sendMessage(`⚠️ Error: ${result.error}`, event.threadID, event.messageID);
- }
-
- const monitor = result.data;
- const msg = `✅ Monitor Created Successfully!\n━━━━━━━━━━━━━━\n🆔 ID: ${monitor.id}\n📛 Name: ${monitor.name}\n🔗 URL: ${monitor.url}\n⏱️ Interval: ${monitor.interval / 60} mins\n📶 Status: ${monitor.status == 1 ? "Active ✅" : "Inactive ❌"}`;
- return api.sendMessage(msg, event.threadID, event.messageID);
- } catch (e) {
- return api.sendMessage(`🚫 API request failed!\n${e.message}`, event.threadID, event.messageID);
- }
- }
+    } catch (error) {
+      api.setMessageReaction("⚠️", event.messageID, () => {}, true);
+      return message.reply("❌ API Server Error.");
+    }
+  }
 };
