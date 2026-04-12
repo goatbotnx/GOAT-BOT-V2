@@ -12,7 +12,8 @@ const filters = [
 
 module.exports = {
   config: {
-    name: "filter",
+    name: "imagefilter",
+    aliases: ["filter", "imgfilter"],
     version: "2.0",
     author: "xalman",
     countDown: 3,
