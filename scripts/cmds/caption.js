@@ -1,55 +1,49 @@
 const axios = require("axios");
 
-const baseApiUrl = async () => {
-  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/exe/main/baseApiUrl.json");
-  return base.data.mahmud;
-};
-
 module.exports = {
   config: {
     name: "caption",
-    version: "1.7",
-    author: "MahMUD",
-    countDown: 5,
-    category: "love"
+    version: "1.5",
+    author: "xalman",
+    countDown: 2,
+    role: 0,
+    shortDescription: "Get random captions",
+    longDescription: "Fetch captions from various categories",
+    category: "fun",
+    guide: "{pn} <category>"
   },
 
-  onStart: async ({ message, args }) => {
-    const baseUrl = await baseApiUrl();
+  onStart: async function ({ api, event, args }) {
+    const { threadID, messageID } = event;
+    const category = args[0]?.toLowerCase();
+    
+    const categories = {
+      "love": { icon: "❤️", font: "𝐥𝐨𝐯𝐞" },
+      "sad": { icon: "🥺", font: "𝐬𝐚𝐝" },
+      "funny": { icon: "🤣", font: "𝐟𝐮𝐧𝐧𝐲" },
+      "attitude": { icon: "😎", font: "𝐚𝐭𝐭𝐢𝐭𝐮𝐝𝐞" },
+      "islamic": { icon: "🕌", font: "𝐢𝐬𝐥𝐚𝐦𝐢𝐜" }
+    };
 
-    if (args[0] === "list") {
-      try {
-        const res = await axios.get(`${baseUrl}/api/caption/list`);
-        const categories = res.data.categories.map(cat => `• ${cat}`).join("\n");
-        return message.reply(`>🎀 𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐢𝐞𝐬:\n\n${categories}`);
-      } catch {
-        return message.reply("❌ Failed to fetch category list.");
+    if (!category || !categories[category]) {
+      let msg = "✨ 𝗔𝘃𝗮𝗶𝗹𝗮𝗯𝗹𝗲 𝗖𝗮𝘁𝗲𝗴𝗼𝗿𝗶𝗲𝘀 ✨\n\n";
+      for (const key in categories) {
+        msg += `${categories[key].icon} ${categories[key].font}\n`;
       }
+      msg += "\nUsage: !caption <category>";
+      return api.sendMessage(msg, threadID, messageID);
     }
-
-    if (args[0] === "add") {
-      if (args.length < 4) return message.reply("⚠ Please specify a category, language (bn/en), and caption text.");
-      const category = args[1];
-      const language = args[2];
-      const caption = args.slice(3).join(" ");
-      try {
-        const res = await axios.post(`${baseUrl}/api/caption/add`, { category, language, caption });
-        return message.reply(res.data.message);
-      } catch {
-        return message.reply("❌ Failed to add caption. Make sure category and language are valid.");
-      }
-    }
-
-    if (!args[0]) return message.reply("⚠ Please specify a category. Example: !caption love");
-
-    const category = args[0];
-    const language = args[1] || "bn";
 
     try {
-      const res = await axios.get(`${baseUrl}/api/caption`, { params: { category, language } });
-      return message.reply(`✅| Here’s your ${category} caption:\n\n${res.data.caption}`);
-    } catch {
-      return message.reply("❌ Failed to fetch caption. Please check the category and language.");
+      api.setMessageReaction("🔍", messageID, () => {}, true);
+      const res = await axios.get(`https://xalman-caption-apix.vercel.app/caption?category=${category}`);
+      const caption = res.data.caption;
+
+      const responseMsg = `『 ${category.toUpperCase()} CAPTION 』\n\n${caption}\n\n${categories[category].icon}━━━━━━━✨━━━━━━━${categories[category].icon}`;
+      
+      return api.sendMessage(responseMsg, threadID, messageID);
+    } catch (error) {
+      return api.sendMessage("❌ Error fetching caption. Please try again.", threadID, messageID);
     }
   }
 };
