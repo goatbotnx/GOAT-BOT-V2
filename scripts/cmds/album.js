@@ -9,6 +9,9 @@ const streamPipeline = promisify(pipeline);
 const API_BASE = "https://xalman-apis.vercel.app/api/category";
 const CACHE_DIR = path.join(__dirname, "cache");
 
+const xalman_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
+
 if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
@@ -17,7 +20,7 @@ module.exports = {
   config: {
     name: "album",
     aliases: ["gallery", "alb"],
-    version: "10.0",
+    version: "10.1",
     author: "xalman",
     role: 0,
     category: "media",
@@ -28,7 +31,8 @@ module.exports = {
   onStart: async function ({ message, event, args }) {
     try {
       const catRes = await axios.get(API_BASE);
-      const allCategories = catRes.data.categories || catRes.data.available_categories;
+      const allCategories =
+        catRes.data.categories || catRes.data.available_categories;
 
       if (!allCategories || !Array.isArray(allCategories)) {
         return message.reply("⚠️ No categories found in API.");
@@ -42,43 +46,117 @@ module.exports = {
       if (page > totalPages) page = totalPages;
 
       const startIndex = (page - 1) * itemsPerPage;
-      const currentPageCategories = allCategories.slice(startIndex, startIndex + itemsPerPage);
+      const currentPageCategories = allCategories.slice(
+        startIndex,
+        startIndex + itemsPerPage
+      );
 
-      const fancy = (t) => t.replace(/[a-z]/g, c => String.fromCodePoint(0x1d400 + c.charCodeAt(0) - 97));
-      const numStyle = (n) => String(n).replace(/[0-9]/g, d => String.fromCodePoint(0x1d7ec + Number(d)));
+      const fancy = (t) =>
+        t.replace(/[a-z]/g, (c) =>
+          String.fromCodePoint(0x1d400 + c.charCodeAt(0) - 97)
+        );
+      const numStyle = (n) =>
+        String(n).replace(/[0-9]/g, (d) =>
+          String.fromCodePoint(0x1d7ec + Number(d))
+        );
 
-      let menuText = `✨ ─── ✦ 𝐀𝐋𝐁𝐔𝐌  ✦ ─── ✨\n\n`;
+      let menuText = `✨ ─── ✦ 𝐀𝐋𝐁𝐔𝐌 ✦ ─── ✨\n\n`;
       currentPageCategories.forEach((cat, index) => {
         menuText += ` ⚡ ${numStyle(index + 1)} ❯ ${fancy(cat)}\n`;
       });
-      menuText += `\n📊 𝐏𝐚𝐠𝐞 [ ${numStyle(page)} / ${numStyle(totalPages)} ]\n`;
+
+      menuText += `\n📊 𝐏𝐚𝐠𝐞 [ ${numStyle(page)} / ${numStyle(
+        totalPages
+      )} ]\n`;
       menuText += `─────────────────────\n`;
-      menuText += `💬 Reply with a number to view\n`;
+      menuText += `↩️ Reply "p" = Previous\n`;
+      menuText += `↪️ Reply "n" = Next\n`;
+      menuText += `💬 Reply number to select\n`;
 
       return message.reply(menuText, (err, info) => {
         global.GoatBot.onReply.set(info.messageID, {
           commandName: "album",
           author: event.senderID,
-          categories: currentPageCategories,
+          categories: allCategories,
+          page,
+          totalPages,
           messageID: info.messageID
         });
       });
-
     } catch (err) {
       return message.reply("⚠️ API Connection Error!");
     }
   },
 
   onReply: async function ({ message, event, Reply }) {
-    const { author, categories, messageID } = Reply;
+    const { author, categories, page, totalPages, messageID } = Reply;
     if (event.senderID !== author) return;
 
-    const pick = parseInt(event.body);
-    if (isNaN(pick) || pick < 1 || pick > categories.length) return message.reply("🔢 Invalid Selection.");
+    const input = event.body.trim().toLowerCase();
 
-    const category = categories[pick - 1];
+    const itemsPerPage = 8;
+
+    // NEXT / PREVIOUS
+    if (input === "n" || input === "p") {
+      let newPage = page;
+
+      if (input === "n" && page < totalPages) newPage++;
+      if (input === "p" && page > 1) newPage--;
+
+      const startIndex = (newPage - 1) * itemsPerPage;
+      const currentPageCategories = categories.slice(
+        startIndex,
+        startIndex + itemsPerPage
+      );
+
+      const fancy = (t) =>
+        t.replace(/[a-z]/g, (c) =>
+          String.fromCodePoint(0x1d400 + c.charCodeAt(0) - 97)
+        );
+      const numStyle = (n) =>
+        String(n).replace(/[0-9]/g, (d) =>
+          String.fromCodePoint(0x1d7ec + Number(d))
+        );
+
+      let menuText = `✨ ─── ✦ 𝐀𝐋𝐁𝐔𝐌 ✦ ─── ✨\n\n`;
+      currentPageCategories.forEach((cat, index) => {
+        menuText += ` ⚡ ${numStyle(index + 1)} ❯ ${fancy(cat)}\n`;
+      });
+
+      menuText += `\n📊 𝐏𝐚𝐠𝐞 [ ${numStyle(newPage)} / ${numStyle(
+        totalPages
+      )} ]\n`;
+      menuText += `─────────────────────\n`;
+      menuText += `↩️ p | ↪️ n\n`;
+
+      message.unsend(messageID).catch(() => {});
+
+      return message.reply(menuText, (err, info) => {
+        global.GoatBot.onReply.set(info.messageID, {
+          commandName: "album",
+          author,
+          categories,
+          page: newPage,
+          totalPages,
+          messageID: info.messageID
+        });
+      });
+    }
+
+    // SELECT CATEGORY
+    const startIndex = (page - 1) * itemsPerPage;
+    const currentPageCategories = categories.slice(
+      startIndex,
+      startIndex + itemsPerPage
+    );
+
+    const pick = parseInt(input);
+    if (isNaN(pick) || pick < 1 || pick > currentPageCategories.length)
+      return message.reply("🔢 Invalid");
+
+    const category = currentPageCategories[pick - 1];
+
     message.unsend(messageID).catch(() => {});
-    
     const wait = await message.reply(`🌀 Streaming ${category.toUpperCase()}...`);
 
     try {
@@ -87,23 +165,31 @@ module.exports = {
 
       if (!mediaUrl) {
         message.unsend(wait.messageID);
-        return message.reply("❌ Category content not found.");
+        return message.reply("❌ Not found");
       }
 
-      const ext = mediaUrl.split(".").pop().split("?")[0] || "mp4";
-      const filePath = path.join(CACHE_DIR, `stream_${Date.now()}.${ext}`);
+      const ext =
+        mediaUrl.split(".").pop().split("?")[0] || "mp4";
+      const filePath = path.join(
+        CACHE_DIR,
+        `stream_${Date.now()}.${ext}`
+      );
 
       const response = await axios({
-        method: 'get',
+        method: "get",
         url: mediaUrl,
-        responseType: 'stream'
+        responseType: "stream",
+        headers: {
+          "User-Agent": xalman_UA
+        }
       });
 
       await streamPipeline(response.data, fs.createWriteStream(filePath));
 
       message.unsend(wait.messageID);
+
       await message.reply({
-        body: `🎬 𝐀𝐋𝐁𝐔𝐌 𝐒𝐔𝐂𝐂𝐄𝐒𝐒\n💎 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${category.toUpperCase()}`,
+        body: `🎬 𝐀𝐋𝐁𝐔𝐌\n💎 ${category.toUpperCase()}`,
         attachment: fs.createReadStream(filePath)
       });
 
@@ -111,7 +197,7 @@ module.exports = {
 
     } catch (err) {
       console.error(err);
-      message.reply("⚠️ Stream Failed.");
+      message.reply("⚠️ Stream Failed");
     }
   }
 };
