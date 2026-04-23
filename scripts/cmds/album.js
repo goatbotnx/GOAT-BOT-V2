@@ -96,7 +96,6 @@ module.exports = {
 
     const itemsPerPage = 8;
 
-    // NEXT / PREVIOUS
     if (input === "n" || input === "p") {
       let newPage = page;
 
@@ -143,7 +142,6 @@ module.exports = {
       });
     }
 
-    // SELECT CATEGORY
     const startIndex = (page - 1) * itemsPerPage;
     const currentPageCategories = categories.slice(
       startIndex,
