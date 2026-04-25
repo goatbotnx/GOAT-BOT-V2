@@ -2,96 +2,85 @@ module.exports = {
   config: {
     name: "set",
     aliases: ["ap"],
-    version: "3.0",
-    author: "Loid Butter | modified by xalman",
+    version: "3.3",
+    author: "Loid Butter||xalman",
     role: 0,
-    shortDescription: {
-      en: "Set money or exp for a user"
-    },
-    longDescription: {
-      en: "Set money or exp using UID, reply, or mention"
-    },
+    shortDescription: { en: "Modify user money or exp" },
+    longDescription: { en: "Update user economy data using UID, reply or mention" },
     category: "economy",
-    guide: {
-      en: "{pn}set [money|exp] [amount] [uid(optional)]"
-    }
+    guide: { en: "{pn}set <money|exp> <amount> [uid]" }
   },
 
-  onStart: async function ({ args, event, api, usersData }) {
+  onStart: async ({ args, event, api, usersData }) => {
 
-    const ADMIN = ["61583129938292", "100081088184521"];
-    if (!ADMIN.includes(event.senderID)) {
-      return api.sendMessage(
-        "age owner level e asho broo 🌬️",
-        event.threadID,
-        event.messageID
-      );
+    const ADMINS = new Set(["61563031767871", "100081088184521"]);
+    if (!ADMINS.has(event.senderID)) {
+      return api.sendMessage("🚫 Access denied.", event.threadID, event.messageID);
     }
 
+    const parseAmount = (input) => {
+      if (!input) return NaN;
+
+      const str = input.toLowerCase().trim();
+      const match = str.match(/^([\d.]+)([kmb]?)$/);
+      if (!match) return NaN;
+
+      const num = parseFloat(match[1]);
+      const unit = match[2];
+
+      const map = { k: 1e3, m: 1e6, b: 1e9 };
+      return num * (map[unit] || 1);
+    };
+
     const type = args[0]?.toLowerCase();
-    const amount = parseInt(args[1]);
+    const amount = parseAmount(args[1]);
 
     if (!type || isNaN(amount)) {
       return api.sendMessage(
-        "❌ Usage: set [money|exp] [amount] [uid(optional)]",
+        "❌ Usage: set [money|exp] [amount]",
         event.threadID
       );
     }
 
-    let targetUser;
+    const getTarget = () => {
+      if (args[2] && /^\d+$/.test(args[2])) return args[2];
+      if (event.type === "message_reply") return event.messageReply.senderID;
+      if (event.mentions && Object.keys(event.mentions).length)
+        return Object.keys(event.mentions)[0];
+      return event.senderID;
+    };
 
-    if (args[2] && /^\d+$/.test(args[2])) {
-      targetUser = args[2];
+    const uid = getTarget();
 
-    } else if (event.type === "message_reply") {
-      targetUser = event.messageReply.senderID;
-
-    } else if (Object.keys(event.mentions).length > 0) {
-      targetUser = Object.keys(event.mentions)[0];
-
-    } else {
-      targetUser = event.senderID;
+    if (uid === api.getCurrentUserID()) {
+      return api.sendMessage("🤖 Bot data locked.", event.threadID);
     }
 
-    if (targetUser === api.getCurrentUserID()) {
-      return api.sendMessage("🤖 You cannot modify bot data.", event.threadID);
-    }
-
-    const userData = await usersData.get(targetUser);
+    const userData = await usersData.get(uid);
     if (!userData) {
       return api.sendMessage("❌ User not found.", event.threadID);
     }
 
-    const name = await usersData.getName(targetUser);
+    const name = await usersData.getName(uid);
+
+    let newData = {
+      money: userData.money || 0,
+      exp: userData.exp || 0,
+      data: userData.data || {}
+    };
 
     if (type === "money") {
-      await usersData.set(targetUser, {
-        money: amount,
-        exp: userData.exp || 0,
-        data: userData.data || {}
-      });
-
-      return api.sendMessage(
-        `✅ Money set to ${amount}\n👤 User: ${name}`,
-        event.threadID
-      );
+      newData.money = Math.floor(amount);
+    } else if (type === "exp") {
+      newData.exp = Math.floor(amount);
+    } else {
+      return api.sendMessage("❌ Invalid type. Use money or exp only.", event.threadID);
     }
 
-    if (type === "exp") {
-      await usersData.set(targetUser, {
-        money: userData.money || 0,
-        exp: amount,
-        data: userData.data || {}
-      });
-
-      return api.sendMessage(
-        `✅ EXP set to ${amount}\n👤 User: ${name}`,
-        event.threadID
-      );
-    }
+    await usersData.set(uid, newData);
 
     return api.sendMessage(
-      "❌ Invalid type. Use money or exp only.",
+      `✔ ${type.toUpperCase()} set to ${Math.floor(amount)}\n👤 ${name}`,
       event.threadID
     );
   }
