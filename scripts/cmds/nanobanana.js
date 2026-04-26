@@ -4,12 +4,12 @@ module.exports = {
   config: {
     name: "nanobanana",
     aliases: ["nb"],
-    version: "1.0",
+    version: "1.2",
     author: "xalman",
     countDown: 10,
     role: 0,
     shortDescription: "Generate images using Nano Banana AI",
-    longDescription: "Generate high-quality images from text prompts ",
+    longDescription: "Generate high-quality images from text prompts using Xalman's Nano Banana API",
     category: "ai",
     guide: "{pn} <prompt>"
   },
@@ -26,15 +26,17 @@ module.exports = {
       api.setMessageReaction("🎨", messageID, () => {}, true);
       
       const url = `https://xalman-apis.vercel.app/api/nb?prompt=${encodeURIComponent(prompt)}`;
-      
       const response = await axios.get(url, { responseType: "stream" });
 
-      return api.sendMessage({
-        body: "𝗡𝗔𝗡𝗢𝗕𝗔𝗡𝗔𝗡𝗔 𝗔𝗜 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗘𝗗🎨",
+      await api.sendMessage({
+        body: "𝗡𝗔𝗡𝗢𝗕𝗔𝗡𝗔𝗡𝗔 𝗔𝗜 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗘𝗗 🎨",
         attachment: response.data
       }, threadID, messageID);
 
+      return api.setMessageReaction("✅", messageID, () => {}, true);
+
     } catch (error) {
+      api.setMessageReaction("❌", messageID, () => {}, true);
       return api.sendMessage("Failed to generate image. Please try again later.", threadID, messageID);
     }
   }
