@@ -4,7 +4,7 @@ module.exports = {
   config: {
     name: "rbg",
     aliases: ["removebg"],
-    version: "3.0",
+    version: "3.1",
     author: "xalman",
     countDown: 4,
     role: 0,
@@ -16,6 +16,7 @@ module.exports = {
   onStart: async function ({ api, event }) {
     const { threadID, messageID, type, messageReply } = event;
     const API_URL = "https://xalman-apis.vercel.app/api/rbg";
+    const xalman_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     let imageUrl;
     if (type === "message_reply" && messageReply.attachments[0]?.type === "photo") {
@@ -27,8 +28,11 @@ module.exports = {
     api.setMessageReaction("⏳", messageID, () => {}, true);
 
     try {
-      const response = await axios.get(`${API_URL}?url=${encodeURIComponent(imageUrl)}`, { 
-        responseType: 'stream' 
+      const response = await axios({
+        method: 'get',
+        url: `${API_URL}?url=${encodeURIComponent(imageUrl)}`,
+        headers: { "User-Agent": xalman_UA },
+        responseType: 'stream'
       });
 
       api.setMessageReaction("✅", messageID, () => {}, true);
@@ -38,6 +42,7 @@ module.exports = {
       }, threadID, messageID);
 
     } catch (error) {
+      console.error(error);
       api.setMessageReaction("❌", messageID, () => {}, true);
       return api.sendMessage("✕ Failed to remove background!", threadID, messageID);
     }
