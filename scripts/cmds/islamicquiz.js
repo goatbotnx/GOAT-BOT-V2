@@ -21,7 +21,7 @@ module.exports = {
       try {
         const res = await axios.get(BASE_URL);
         return message.reply(
-`🕌 ISLAMIC QUIZ
+`RMISLAMIC QUIZ
 ━━━━━━━━━━━━━━━━━━
 📚 Total Questions: ${res.data.total_questions}
 👤 Author: ${res.data.author}
@@ -86,7 +86,13 @@ ${optionsText}
       return message.reply("❌ This is not your quiz!");
     }
 
-    const userAnswer = body.trim().toUpperCase();
+    let userAnswer = body.trim().toUpperCase();
+    
+    const mapping = {
+      "🅐": "A", "🅑": "B", "🅒": "C", "🅓": "D"
+    };
+    if (mapping[userAnswer]) userAnswer = mapping[userAnswer];
+
     const validOptions = ["A", "B", "C", "D"];
     if (!validOptions.includes(userAnswer)) return;
 
@@ -116,6 +122,7 @@ ${optionsText}
       }
 
       message.reply(resultMsg, (err, info) => {
+        if (err) return;
         setTimeout(() => {
           api.unsendMessage(info.messageID);
           api.unsendMessage(Reply.messageID);
@@ -126,4 +133,6 @@ ${optionsText}
 
     } catch (e) {
       return message.reply("❌ Processing Error.");
-    }const
+    }
+  }
+};
