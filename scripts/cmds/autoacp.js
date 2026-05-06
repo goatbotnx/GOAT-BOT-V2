@@ -1,4 +1,4 @@
-. Cmd install autoacp.js const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 
 const configPath = path.join(__dirname, "cache", "autoAccept.json");
