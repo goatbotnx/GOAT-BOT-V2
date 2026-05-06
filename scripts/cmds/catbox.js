@@ -4,7 +4,7 @@ module.exports = {
   config: {
     name: "catbox",
     aliases: ["cb"],
-    version: "3.0",
+    version: "4.0",
     author: "xalman",
     countDown: 3,
     role: 0,
@@ -14,32 +14,101 @@ module.exports = {
   },
 
   onStart: async function ({ api, event }) {
-    const { threadID, messageID, type, messageReply } = event;
-    const API_URL = "https://xalman-apis.vercel.app/api/catbox";
 
-    if (type !== "message_reply" || !messageReply.attachments || messageReply.attachments.length === 0) {
-      return api.sendMessage("╭─❍\n│ Please reply to a Photo, Video, GIF, or Audio!\n╰───────────⟡", threadID, messageID);
+    const {
+      threadID,
+      messageID,
+      type,
+      messageReply
+    } = event;
+
+    const API_URL =
+      "https://xalman-apis.vercel.app/api/catbox";
+
+    if (
+      type !== "message_reply" ||
+      !messageReply.attachments ||
+      messageReply.attachments.length === 0
+    ) {
+
+      return api.sendMessage(
+        "Please reply to a media file!",
+        threadID,
+        messageID
+      );
     }
 
-    const attachment = messageReply.attachments[0];
+    const attachment =
+      messageReply.attachments[0];
+    const allowedTypes = [
+      "photo",
+      "video",
+      "audio",
+      "animated_image"
+    ];
+
+    if (!allowedTypes.includes(attachment.type)) {
+
+      return api.sendMessage(
+        "Only Photo, Video, GIF, Audio supported!",
+        threadID,
+        messageID
+      );
+    }
+
     const mediaUrl = attachment.url;
 
-    const waitMsg = await api.sendMessage("Uploading...", threadID, messageID);
+    api.setMessageReaction(
+      "⏳",
+      messageID,
+      () => {},
+      true
+    );
 
     try {
-      const res = await axios.post(API_URL, {
-        url: mediaUrl
-      });
 
-      const catboxUrl = res.data.url || res.data.data?.url || res.data.result;
+      const res = await axios.get(
+        `${API_URL}?url=${encodeURIComponent(mediaUrl)}`
+      );
 
-      if (catboxUrl) {
-        return api.editMessage(catboxUrl, waitMsg.messageID);
-      } else {
-        throw new Error();
+      if (!res.data.success) {
+        throw new Error(
+          res.data.error || "Upload failed"
+        );
       }
+
+      const uploadedUrl =
+        res.data.data.url;
+
+      api.setMessageReaction(
+        "✅",
+        messageID,
+        () => {},
+        true
+      );
+
+      return api.sendMessage(
+        uploadedUrl,
+        threadID,
+        messageID
+      );
+
     } catch (error) {
-      return api.editMessage("✕ Failed to upload!", waitMsg.messageID);
+
+      console.log(error.message);
+
+      api.setMessageReaction(
+        "❌",
+        messageID,
+        () => {},
+        true
+      );
+
+      return api.sendMessage(
+        "Failed to upload media!",
+        threadID,
+        messageID
+      );
     }
   }
 };
